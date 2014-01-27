@@ -55,13 +55,20 @@ module.exports = function (grunt){
             }
         },
 
+    curl: {
+       jpg: {
+         src: 'https://dl.dropboxusercontent.com/u/49592745/BigJPG.jpg',
+         dest: 'tests/files/big.jpg' 
+      }
+    },
+
 		qunit: {
 			all: {
 				options: {
 					timeout: 5 * 60 * 1000, // 5min
 					files: {
 						  '1px.gif':	['tests/files/1px.gif']
-                        , 'big.jpg':	['tests/files/big.jpg']
+						, 'big.jpg':	['tests/files/big.jpg']
 						, 'hello.txt':	['tests/files/hello.txt']
 						, 'image.jpg':	['tests/files/image.jpg']
 						, 'dino.png':	['tests/files/dino.png']
@@ -188,7 +195,6 @@ module.exports = function (grunt){
 		}
 	});
 
-
 	// These plugins provide necessary tasks.
 	grunt.loadNpmTasks('grunt-version');
 	grunt.loadNpmTasks('grunt-contrib-jshint');
@@ -196,12 +202,18 @@ module.exports = function (grunt){
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-contrib-connect');
-    grunt.loadNpmTasks('grunt-mxmlc');
+	grunt.loadNpmTasks('grunt-mxmlc');
+	grunt.loadNpmTasks('grunt-curl');
 	// Load custom QUnit task, based on grunt-contrib-qunit, but support "files" option.
 	grunt.loadTasks('./tests/grunt-task/');
 
 	// "npm build" runs these tasks
+	grunt.registerTask('prepare', function (){
+		if (!grunt.file.exists('tests/files/big.jpg')) {
+            grunt.task.run('curl');
+        }
+	});
 	grunt.registerTask('tests', ['jshint', 'concat', 'connect:server', 'qunit']);
 	grunt.registerTask('build', ['version', 'concat', 'uglify', 'mxmlc']);
-	grunt.registerTask('default', ['tests', 'build']);
+	grunt.registerTask('default', ['prepare', 'tests', 'build']);
 };
