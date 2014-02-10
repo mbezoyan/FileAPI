@@ -1,4 +1,4 @@
-/*! FileAPI 2.0.3 - BSD | git://github.com/mailru/FileAPI.git
+/*! FileAPI 2.0.3c - BSD | git://github.com/mailru/FileAPI.git
  * FileAPI — a set of  javascript tools for working with files. Multiupload, drag'n'drop and chunked file upload. Images: crop, resize and auto orientation by EXIF.
  */
 
@@ -278,7 +278,7 @@
 		 * FileAPI (core object)
 		 */
 		api = {
-			version: '2.0.3b',
+			version: '2.0.3c',
 
 			cors: false,
 			html5: true,
@@ -1273,8 +1273,8 @@
 					, filename = file.name
 					, filetype = file.type
 					, trans = api.support.transform && options.imageTransform
-					, Form = new api.Form
-					, queue = api.queue(function (){ fn(Form); })
+					, form = new api.Form
+					, queue = api.queue(function (){ fn(form); })
 					, isOrignTrans = trans && _isOriginTransform(trans)
 					, postNameConcat = api.postNameConcat
 				;
@@ -1303,10 +1303,10 @@
 							if( isOrignTrans && !err ){
 								if( !dataURLtoBlob && !api.flashEngine ){
 									// Canvas.toBlob or Flash not supported, use multipart
-									Form.multipart = true;
+									form.multipart = true;
 								}
 
-								Form.append(name, images[0], filename,  trans[0].type || filetype);
+								form.append(name, images[0], filename,  trans[0].type || filetype);
 							}
 							else {
 								var addOrigin = 0;
@@ -1314,19 +1314,19 @@
 								if( !err ){
 									_each(images, function (image, idx){
 										if( !dataURLtoBlob && !api.flashEngine ){
-											Form.multipart = true;
+											form.multipart = true;
 										}
 
 										if( !trans[idx].postName ){
 											addOrigin = 1;
 										}
 
-										Form.append(trans[idx].postName || postNameConcat(name, idx), image, filename, trans[idx].type || filetype);
+										form.append(trans[idx].postName || postNameConcat(name, idx), image, filename, trans[idx].type || filetype);
 									});
 								}
 
 								if( err || options.imageOriginal ){
-									Form.append(postNameConcat(name, (addOrigin ? 'original' : null)), file, filename, filetype);
+									form.append(postNameConcat(name, (addOrigin ? 'original' : null)), file, filename, filetype);
 								}
 							}
 
@@ -1334,7 +1334,7 @@
 						});
 					}
 					else if( filename !== api.expando ){
-						Form.append(name, file, filename);
+						form.append(name, file, filename);
 					}
 				})(file);
 
@@ -1347,7 +1347,7 @@
 						});
 					}
 					else {
-						Form.append(name, val);
+						form.append(name, val);
 					}
 				});
 
@@ -3025,7 +3025,13 @@
 						}
 						else {
 							var bytes = Array.prototype.map.call(rawData, function(c){ return c.charCodeAt(0) & 0xff; });
-							xhr.send(new Uint8Array(bytes).buffer);
+							if (window.Uint8Array) {
+								xhr.send(new Uint8Array(bytes).buffer);
+							} else {
+								setTimeout(function (){
+									_this.end(-2, "Unsupported Uint8Array");
+								});
+							}
 
 						}
 					} else {

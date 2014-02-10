@@ -4,8 +4,8 @@ module.exports = function (grunt) {
 	// Project configuration.
 	grunt.config.set('concat.ok', {
 		src: [
-			'lib/FileAPI.header.js'
-			, 'lib/canvas-to-blob.js'
+			  'lib/canvas-to-blob.js'
+			, 'lib/FileAPI.header.js'
 			, 'lib/FileAPI.core.js'
 			, 'lib/FileAPI.Image.js'
 			, 'lib/load-image-ios.js'
@@ -18,8 +18,8 @@ module.exports = function (grunt) {
 	});
 	grunt.config.set('concat.html5ok', {
 		src: [
-			'lib/FileAPI.header.js'
-			, 'lib/canvas-to-blob.js'
+			'lib/canvas-to-blob.js'
+			, 'lib/FileAPI.header.js'
 			, 'lib/FileAPI.core.js'
 			, 'lib/FileAPI.Image.js'
 			, 'lib/load-image-ios.js'
