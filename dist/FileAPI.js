@@ -1,4 +1,4 @@
-/*! FileAPI 2.0.3c - BSD | git://github.com/mailru/FileAPI.git
+/*! FileAPI 2.0.3d - BSD | git://github.com/mailru/FileAPI.git
  * FileAPI — a set of  javascript tools for working with files. Multiupload, drag'n'drop and chunked file upload. Images: crop, resize and auto orientation by EXIF.
  */
 
@@ -278,7 +278,7 @@
 		 * FileAPI (core object)
 		 */
 		api = {
-			version: '2.0.3c',
+			version: '2.0.3d',
 
 			cors: false,
 			html5: true,
@@ -396,6 +396,7 @@
 				html5:   html5,
 				chunked: chunked,
 				dataURI: true,
+				apiURL:  !!apiURL,
 				accept:   _supportInputAttr('accept'),
 				multiple: _supportInputAttr('multiple')
 			},
@@ -460,7 +461,7 @@
 							error	= err || false;
 							result	= res;
 
-							while( res = list.shift() ){
+							while ( res = list.shift() ) {
 								res(error, result);
 							}
 						},
@@ -475,6 +476,10 @@
 				};
 
 				return	defer;
+			},
+
+			isDeferred: function (arg) {
+				return arg && typeof arg.then === 'function' && typeof arg.resolve === 'function';
 			},
 
 			queue: function (fn){
@@ -594,6 +599,7 @@
 			 * @param {Function} fn
 			 */
 			readAsDataURL: function (file, fn){
+				api.log('api.readAsDataUrl');
 				if( api.isCanvas(file) ){
 					_emit(file, fn, 'load', api.toDataURL(file));
 				}
@@ -610,6 +616,7 @@
 			 * @param {Function} fn
 			 */
 			readAsBinaryString: function (file, fn){
+				api.log('api.readAsBinaryString');
 				if( _hasSupportReadAs('BinaryString') ){
 					_readAs(file, fn, 'BinaryString');
 				} else {
@@ -1093,85 +1100,101 @@
 						proxyXHR.currentFile = _file;
 
 						// Prepare file options
-						if (_file && options.prepare(_file, _fileOptions) === false) {
-							_nextFile.call(_this);
-							return;
-						}
 						_fileOptions.file = _file;
-
-						_this._getFormData(_fileOptions, data, function (form){
-							if( !_loaded ){
-								// emit "upload" event
-								options.upload(proxyXHR, options);
-							}
-
-							var xhr = new api.XHR(_extend({}, _fileOptions, {
-
-								upload: _file ? function (){
-									// emit "fileupload" event
-									options.fileupload(_file, xhr, _fileOptions);
-								} : noop,
-
-								progress: _file ? function (evt){
-									if( !_fileLoaded ){
-										// For ignore the double calls.
-										_fileLoaded = (evt.loaded === evt.total);
-
-										// emit "fileprogress" event
-										options.fileprogress({
-											  type:   'progress'
-											, total:  data.total = evt.total
-											, loaded: data.loaded = evt.loaded
-										}, _file, xhr, _fileOptions);
-
-										// emit "progress" event
-										options.progress({
-											  type:   'progress'
-											, total:  _total
-											, loaded: proxyXHR.loaded = (_loaded + data.size * (evt.loaded/evt.total))|0
-										}, _file, xhr, _fileOptions);
-									}
-								} : noop,
-
-								complete: function (err){
-									_each(_xhrPropsExport, function (name){
-										proxyXHR[name] = xhr[name];
-									});
-
-									if( _file ){
-										data.total = (data.total || data.size);
-										data.loaded	= data.total;
-
-										// emulate 100% "progress"
-										this.progress(data);
-
-										// fixed throttle event
-										_fileLoaded = true;
-
-										// bytes loaded
-										_loaded += data.size; // data.size != data.total, it's desirable fix this
-										proxyXHR.loaded = _loaded;
-
-										// emit "filecomplete" event
-										options.filecomplete(err, xhr, _file, _fileOptions);
+						var prepareResult = _file && options.prepare(_file, _fileOptions);
+						if (prepareResult === false) {
+							_nextFile.call(_this);
+						} else {
+							var _doUploadFn = function () {
+								_this._getFormData(_fileOptions, data, function (form){
+									if( !_loaded ){
+										// emit "upload" event
+										options.upload(proxyXHR, options);
 									}
 
-									// upload next file
-									setTimeout(function () {_nextFile.call(_this);}, 0);
-								}
-							})); // xhr
+									var xhr = new api.XHR(_extend({}, _fileOptions, {
+
+										upload: _file ? function (){
+											// emit "fileupload" event
+											options.fileupload(_file, xhr, _fileOptions);
+										} : noop,
+
+										progress: _file ? function (evt){
+											if( !_fileLoaded ){
+												// For ignore the double calls.
+												_fileLoaded = (evt.loaded === evt.total);
+
+												// emit "fileprogress" event
+												options.fileprogress({
+													  type:   'progress'
+													, total:  data.total = evt.total
+													, loaded: data.loaded = evt.loaded
+												}, _file, xhr, _fileOptions);
+
+												// emit "progress" event
+												options.progress({
+													  type:   'progress'
+													, total:  _total
+													, loaded: proxyXHR.loaded = (_loaded + data.size * (evt.loaded/evt.total))|0
+												}, _file, xhr, _fileOptions);
+											}
+										} : noop,
+
+										complete: function (err){
+											_each(_xhrPropsExport, function (name){
+												proxyXHR[name] = xhr[name];
+											});
+
+											if( _file ){
+												data.total = (data.total || data.size);
+												data.loaded	= data.total;
+
+												// emulate 100% "progress"
+												this.progress(data);
+
+												// fixed throttle event
+												_fileLoaded = true;
+
+												// bytes loaded
+												_loaded += data.size; // data.size != data.total, it's desirable fix this
+												proxyXHR.loaded = _loaded;
+
+												// emit "filecomplete" event
+												options.filecomplete(err, xhr, _file, _fileOptions);
+											}
+
+											// upload next file
+											setTimeout(function () {_nextFile.call(_this);}, 0);
+										}
+									})); // xhr
 
 
-							// ...
-							proxyXHR.abort = function (current){
-								if (!current) { dataArray.length = 0; }
-								this.current = current;
-								xhr.abort();
+									// ...
+									proxyXHR.abort = function (current){
+										if (!current) { dataArray.length = 0; }
+										this.current = current;
+										xhr.abort();
+									};
+
+									// Start upload
+									xhr.send(form);
+								});
 							};
 
-							// Start upload
-							xhr.send(form);
-						});
+							if (api.isDeferred(prepareResult)) {
+								prepareResult.then(function (err, result) {
+									if (result !== false) {
+										_doUploadFn();
+									} else {
+										_nextFile.call(_this);
+									}
+								});
+							} else {
+								_doUploadFn();
+							}
+						}
+
+
 					}
 					else {
 						options.complete(proxyXHR.status == 200 || proxyXHR.status == 201 ? false : (proxyXHR.statusText || 'error'), proxyXHR, options);
@@ -1488,15 +1511,23 @@
 
 	function _readAs(file, fn, as, encoding){
 		if( api.isBlob(file) && _hasSupportReadAs(as) ){
-			var Reader = new FileReader;
-
-			// Add event listener
-			_on(Reader, _readerEvents, function _fn(evt){
-				var type = evt.type;
-				if( type == 'progress' ){
-					_emit(file, fn, evt, evt.target.result, { loaded: evt.loaded, total: evt.total });
-				}
+            var Reader = new FileReader;
+            var progressEvtTime = 0;
+			api.log("readAs" + as + " [Start]");
+            // Add event listener
+            _on(Reader, _readerEvents, function _fn(evt){
+                var type = evt.type;
+                if( type == 'progress' ){
+                    //Opera12 big images/slow upload fix
+					api.log("readAs" + as + " [Progress]");
+                    var now = Date.now();
+                    if (now - progressEvtTime > 400){
+                        progressEvtTime = now;
+                        _emit(file, fn, evt, evt.target.result, { loaded: evt.loaded, total: evt.total });
+                    }
+                }
 				else if( type == 'loadend' ){
+					api.log("readAs" + as + " [End]");
 					_off(Reader, _readerEvents, _fn);
 					Reader = null;
 				}
@@ -2839,6 +2870,7 @@
 					api.log("Error: already aborted");
 					return;
 				}
+
 				xhr = _this.xhr = api.getXHR();
 
 				if (data.params) {
@@ -3340,7 +3372,7 @@
 
 	   api.support.flash
 	&& (0
-		|| !api.html5 || !api.support.html5
+		|| api.html5 !== true || !api.support.html5
 		|| (api.cors && !api.support.cors)
 		|| (api.media && !api.support.media)
 	)
@@ -3456,7 +3488,9 @@
 				mouseover: function (evt){
 					var target = api.event.fix(evt).target;
 
-					if( /input/i.test(target.nodeName) && target.type == 'file' ){
+					if( /input/i.test(target.nodeName) && target.type == 'file'
+						&& (api.html5 === false || typeof api.html5 === 'function' && api.html5(target) !== true)) {
+
 						var
 							  state = target.getAttribute(_attr)
 							, wrapper = flash.getWrapper(target)
@@ -3764,17 +3798,17 @@
 						},
 
 						toData: function (fn){
-							var
-								  file = this.file
-								, info = file.info
-								, matrix = this.getMatrix(info)
-							;
 							api.log('FlashAPI.Image.toData');
 
-							if( _isHtmlFile(file) ){
+							if( _isHtmlFile(this.file) ){
 								this.parent.apply(this, arguments);
 							}
 							else {
+								var
+									  file = this.file
+									, info = file.info
+									, matrix = this.getMatrix(info)
+								;
 								if( matrix.deg == 'auto' ){
 									matrix.deg = api.Image.exifOrientation[info && info.exif && info.exif.Orientation] || 0;
 								}
@@ -3828,7 +3862,7 @@
 						_send: function (options, formData){
 							if(
 								   formData.nodeName
-								|| formData.append && api.support.html5
+								|| (formData.append || api.isFile(formData.file)) && api.support.html5
 								|| api.isArray(formData) && (typeof formData[0] === 'string')
 							){
 								// HTML5, Multipart or IFrame

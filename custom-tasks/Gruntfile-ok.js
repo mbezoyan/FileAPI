@@ -29,10 +29,25 @@ module.exports = function (grunt) {
 		],
 		dest: 'dist/<%= pkg.exportName %>.html5ok.js'
 	});
+	grunt.config.set('concat.ok_no_exif', {
+		src: [
+			'lib/canvas-to-blob.js'
+			, 'lib/FileAPI.header.js'
+			, 'lib/FileAPI.core.js'
+			, 'lib/FileAPI.Image.js'
+			, 'lib/load-image-ios.js'
+			, 'lib/FileAPI.Form.js'
+			, 'lib/FileAPI.XHR.js'
+			, 'lib/FileAPI.Flash.js'
+		],
+		dest: 'dist/<%= pkg.exportName %>.ok_no_exif.js'
+	});
 
 	grunt.config.set('uglify.distok', {
 		files: {
-			'dist/<%= pkg.exportName %>.ok.min.js': ['<%= concat.ok.dest %>'], 'dist/<%= pkg.exportName %>.html5ok.min.js': ['<%= concat.html5ok.dest %>']
+			'dist/<%= pkg.exportName %>.ok.min.js': ['<%= concat.ok.dest %>'],
+			'dist/<%= pkg.exportName %>.html5ok.min.js': ['<%= concat.html5ok.dest %>'],
+			'dist/<%= pkg.exportName %>.ok_no_exif.min.js': ['<%= concat.ok_no_exif.dest %>']
 		}
 	});
 
